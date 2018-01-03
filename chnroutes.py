@@ -6,17 +6,43 @@ import sys
 import argparse
 import math
 import textwrap
+import os
 
 
-def generate_ovpn(metric):
-    results = fetch_ip_data()  
-    rfile=open('routes.txt','w')
-    for ip,mask,_ in results:
-        route_item="route %s %s net_gateway %d\n"%(ip,mask,metric)
-        rfile.write(route_item)
-    rfile.close()
-    print "Usage: Append the content of the newly created routes.txt to your openvpn config file," \
-          " and also add 'max-routes %d', which takes a line, to the head of the file." % (len(results)+20)
+def generate_ovpn(metric, src, dest):
+    def _generate_route(data, fd):
+        for ip,mask,_ in data:
+            route_item="route %s %s net_gateway %d\n"%(ip,mask,metric)
+            fd.write(route_item)
+
+    dest_prefix = 'chn_'
+    data = fetch_ip_data()
+    if src is not None:
+        if os.path.exists(src):
+            if not os.path.exists(dest):
+                sys.stderr.write("Destination path %s doesn't exist" % dest)
+                exit(-1)
+
+            for root, dirs, files in os.walk(src):
+                for src_file in files:
+                    if re.match(dest_prefix, src_file):
+                        continue
+
+                    dest_file = dest_prefix + src_file
+                    with open(os.path.join(root, src_file), 'r') as src_fd, \
+                            open(os.path.join(dest, dest_file), 'w') as dest_fd:
+                        dest_fd.write("max-routes %d\n" % (len(data) + 20))
+                        config = src_fd.readlines()
+                        dest_fd.writelines(config)
+                        _generate_route(data, dest_fd)
+        else:
+            sys.stderr.write("Source path %s doesn't exist" % src)
+            exit(-1)
+    else:
+        with open('routes.txt', 'w') as fd:
+            _generate_route(data, fd)
+            print "Usage: Append the content of the newly created routes.txt to your openvpn config file," \
+                  " and also add 'max-routes %d', which takes a line, to the head of the file." % (len(data)+20)
 
 
 def generate_linux(metric):
@@ -242,11 +268,23 @@ if __name__=='__main__':
                         nargs='?',
                         type=int,
                         help="Metric setting for the route rules")
-    
+    parser.add_argument('-s',
+                        '--src',
+                        dest = 'src',
+                        default = os.getcwd(),
+                        type = str,
+                        help = "Source path of OpenVPN configure files")
+    parser.add_argument('-d',
+                        '--dest',
+                        dest = 'dest',
+                        default = './',
+                        type = str,
+                        help = "Destination path of OpenVPN configure files")
+
     args = parser.parse_args()
     
     if args.platform.lower() == 'openvpn':
-        generate_ovpn(args.metric)
+        generate_ovpn(args.metric, args.src, args.dest)
     elif args.platform.lower() == 'linux':
         generate_linux(args.metric)
     elif args.platform.lower() == 'mac' or args.platform.lower() == 'darwin':

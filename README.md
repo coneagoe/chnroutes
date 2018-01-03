@@ -15,10 +15,7 @@
 本方法适用于使用openvpn v2.1或更高版本的用户. 因为openvpn v2.1比之前版本增加了一个名为max-routes的新参数, 通过设置该参数, 我们可以在配置文件里(服务端, 客户端)直接添加超过100条以上的路由信息. 具体设置步骤如下:
 
 1. 下载 chnroutes.py 文件
- 在命令行里执行 python chnroutes.py, 这将生成一个名为 routes.txt 的文本文件. 对于不想安装python的用户, 可以直接从项目下来列表里下载该文件. 它将会每月更新一次.
-2. 使用你喜欢的文本编辑器打开上述文件, 并把内容复制粘贴到openvpn配置文件的末尾
-3. 同时在openvpn配置文件的头部添加一句 max-routes num, 其中num是一个不小于文件routes.txt的行数的数字, 实际上因为还有一些服务器端push过来的路由信息, 所以保险起见可以用 routes.txt的行数加上50, 比如目前得到的routes.txt的行数是940, 你可以把数字设置为1000: max-routes 1000
-4. 修改完之后, 重新进行openvpn连接, 你可以用之前描述过的方法进行测试是否成功 
+ 在命令行里执行 python chnroutes.py -s _src_ -d _dest_, _src_为openvpn配置文件所在的目录，_dest_为输出目录。(通常vpn会有多个server)
 
 以上方法在Mac OSX, Linux 和 Windows上测试通过. 但需要注意的是, 这里用到一个net_gateway的变量表示未连接openvpn前的网关地址, 但openvpn的文档里有说明这个不是所有系统都支持的, 如果发生这个情况, 可以修改一下生成脚本, 把net_gateway修改为你的局域网的网关地址. 对于windows 7 和 vista, OpenVPN的windows客户端可能需要设置Windows XP兼容模式才能使用, 安装文件要在属性选择中的兼容性选择Windows XP和以管理员的身份运行，安装好的运行文件也同样选择这两个选项。如果还是不能连接到VPN的网络，可以尝试在配置文件中加入：
 
